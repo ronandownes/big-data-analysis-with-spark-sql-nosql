@@ -1,0 +1,489 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Stock Tweet and Price Analysis
+# 
+# In this notebook, we will analyze stock prices and tweets related to various companies. We will perform data preprocessing, exploratory data analysis (EDA), and implement time series forecasting models.
+# 
+
+# ## Extracting the ZIP File
+# 
+# First, we need to extract the contents of the provided ZIP file to access the datasets.
+# 
+
+# In[3]:
+
+
+import zipfile
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+
+# Path to the zip file
+zip_file_path = 'data/stock-tweet-and-price.zip'
+extract_path = 'data/stock-tweet-and-price/'
+
+# Unzip the file
+with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_path)
+
+# Verify the extracted files
+extracted_files = os.listdir(extract_path)
+print("Files in the extracted directory:", extracted_files)
+
+# Assuming there is an additional nested directory
+nested_extract_path = os.path.join(extract_path, 'stock-tweet-and-price')
+nested_files = os.listdir(nested_extract_path)
+print("Files in the nested extracted directory:", nested_files)
+
+
+# ## Verify the Extracted Files
+# 
+# Let's check the structure of the extracted files to ensure everything is in place.
+# 
+
+# In[5]:
+
+
+# Check if 'stockprice' directory exists
+stockprice_dir = os.path.join(nested_extract_path, 'stockprice')
+if os.path.exists(stockprice_dir) and os.path.isdir(stockprice_dir):
+    stockprice_files = os.listdir(stockprice_dir)
+    print("Files in the stockprice directory:", stockprice_files)
+else:
+    print("'stockprice' directory does not exist in the nested extracted path.")
+
+# Correct path to 'stocktweet.csv'
+tweets_csv_path = os.path.join(nested_extract_path, 'stocktweet', 'stocktweet.csv')
+if os.path.exists(tweets_csv_path):
+    tweets_df = pd.read_csv(tweets_csv_path)
+    print("First few rows of the tweets dataset:")
+    display(tweets_df.head())
+else:
+    print(f"{tweets_csv_path} does not exist.")
+
+
+# ## Load Stock Price Data
+# 
+# Next, we will load the stock price data for a few selected companies.
+# 
+
+# In[7]:
+
+
+# Load stock price data for a few companies to start
+companies = ['AAPL', 'AMZN', 'GOOG', 'MSFT', 'TSLA']
+stock_data = {}
+for company in companies:
+    company_csv_path = os.path.join(stockprice_dir, f'{company}.csv')
+    if os.path.exists(company_csv_path):
+        stock_data[company] = pd.read_csv(company_csv_path)
+        print(f"First few rows of the {company} dataset:")
+        display(stock_data[company].head())
+    else:
+        print(f"{company_csv_path} does not exist.")
+
+
+# ## Exploratory Data Analysis (EDA)
+# 
+# We will perform exploratory data analysis on the tweets and stock price datasets.
+# 
+
+# In[9]:
+
+
+# Exploratory Data Analysis on Tweets Dataset
+print("Summary statistics of the tweets dataset:")
+print(tweets_df.describe())
+
+print("\nMissing values in the tweets dataset:")
+print(tweets_df.isnull().sum())
+
+# Convert the date column to datetime with the correct format
+tweets_df['date'] = pd.to_datetime(tweets_df['date'], format='%d/%m/%Y')
+
+# Distribution of tweets over time
+tweets_df['date'].value_counts().sort_index().plot(kind='line', figsize=(14, 7), title='Distribution of Tweets Over Time')
+plt.xlabel('Date')
+plt.ylabel('Number of Tweets')
+plt.show()
+
+# Most frequently mentioned companies
+tweets_df['ticker'].value_counts().plot(kind='bar', figsize=(14, 7), title='Most Frequently Mentioned Companies in Tweets')
+plt.xlabel('Company Ticker')
+plt.ylabel('Number of Mentions')
+plt.show()
+
+# Exploratory Data Analysis on Stock Price Data
+for company in companies:
+    print(f"\nSummary statistics of the {company} stock price dataset:")
+    print(stock_data[company].describe())
+
+    print(f"\nMissing values in the {company} stock price dataset:")
+    print(stock_data[company].isnull().sum())
+
+    # Convert the Date column to datetime
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'], format='%Y-%m-%d')
+
+    # Plot the closing prices
+    stock_data[company].set_index('Date')['Close'].plot(kind='line', figsize=(14, 7), title=f'Closing Prices of {company} Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Closing Price')
+    plt.show()
+
+
+# 
+
+# In[ ]:
+
+
+
+
+
+# 
+
+# In[ ]:
+
+
+
+
+
+# In[12]:
+
+
+import zipfile
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+
+# Path to the zip file
+zip_file_path = 'data/stock-tweet-and-price.zip'
+extract_path = 'data/stock-tweet-and-price/'
+
+# Unzip the file
+with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_path)
+
+# Verify the extracted files
+extracted_files = os.listdir(extract_path)
+print("Files in the extracted directory:", extracted_files)
+
+# Assuming there is an additional nested directory
+nested_extract_path = os.path.join(extract_path, 'stock-tweet-and-price')
+nested_files = os.listdir(nested_extract_path)
+print("Files in the nested extracted directory:", nested_files)
+
+# Check if 'stockprice' directory exists
+stockprice_dir = os.path.join(nested_extract_path, 'stockprice')
+if os.path.exists(stockprice_dir) and os.path.isdir(stockprice_dir):
+    stockprice_files = os.listdir(stockprice_dir)
+    print("Files in the stockprice directory:", stockprice_files)
+else:
+    print("'stockprice' directory does not exist in the nested extracted path.")
+
+# Correct path to 'stocktweet.csv'
+tweets_csv_path = os.path.join(nested_extract_path, 'stocktweet', 'stocktweet.csv')
+if os.path.exists(tweets_csv_path):
+    tweets_df = pd.read_csv(tweets_csv_path)
+    print("First few rows of the tweets dataset:")
+    display(tweets_df.head())
+else:
+    print(f"{tweets_csv_path} does not exist.")
+
+# Load stock price data for a few companies to start
+companies = ['AAPL', 'AMZN', 'GOOG', 'MSFT', 'TSLA']
+stock_data = {}
+for company in companies:
+    company_csv_path = os.path.join(stockprice_dir, f'{company}.csv')
+    if os.path.exists(company_csv_path):
+        stock_data[company] = pd.read_csv(company_csv_path)
+        print(f"First few rows of the {company} dataset:")
+        display(stock_data[company].head())
+    else:
+        print(f"{company_csv_path} does not exist.")
+
+# Exploratory Data Analysis on Tweets Dataset
+print("Summary statistics of the tweets dataset:")
+print(tweets_df.describe())
+
+print("\nMissing values in the tweets dataset:")
+print(tweets_df.isnull().sum())
+
+# Convert the date column to datetime with the correct format
+tweets_df['date'] = pd.to_datetime(tweets_df['date'], format='%d/%m/%Y')
+
+# Distribution of tweets over time
+tweets_df['date'].value_counts().sort_index().plot(kind='line', figsize=(14, 7), title='Distribution of Tweets Over Time')
+plt.xlabel('Date')
+plt.ylabel('Number of Tweets')
+plt.show()
+
+# Most frequently mentioned companies
+tweets_df['ticker'].value_counts().plot(kind='bar', figsize=(14, 7), title='Most Frequently Mentioned Companies in Tweets')
+plt.xlabel('Company Ticker')
+plt.ylabel('Number of Mentions')
+plt.show()
+
+# Exploratory Data Analysis on Stock Price Data
+for company in companies:
+    print(f"\nSummary statistics of the {company} stock price dataset:")
+    print(stock_data[company].describe())
+
+    print(f"\nMissing values in the {company} stock price dataset:")
+    print(stock_data[company].isnull().sum())
+
+    # Convert the Date column to datetime
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'], format='%Y-%m-%d')
+
+    # Plot the closing prices
+    stock_data[company].set_index('Date')['Close'].plot(kind='line', figsize=(14, 7), title=f'Closing Prices of {company} Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Closing Price')
+    plt.show()
+
+
+
+
+
+
+
+
+# ## Data Preprocessing and Cleaning
+# 
+# ### Check for Missing Values and Drop Them
+# 
+# Let's first check for any missing values in the tweets dataset and the stock price datasets. We'll then drop any rows with missing values
+# 
+
+# In[14]:
+
+
+# Check for missing values in tweets dataset
+print("Missing values in the tweets dataset:")
+print(tweets_df.isnull().sum())
+
+# Drop missing values in tweets dataset
+tweets_df = tweets_df.dropna()
+
+# Check for missing values in stock price datasets
+for company in companies:
+    print(f"\nMissing values in the {company} stock price dataset:")
+    print(stock_data[company].isnull().sum())
+    
+    # Drop missing values in stock price datasets
+    stock_data[company] = stock_data[company].dropna()
+
+
+# ### Feature Engineering on Tweet Text
+# 
+# Next, we will perform feature engineering on the tweet text. We'll use the TextBlob library for sentiment analysis to extract sentiment scores from the tweets.
+# 
+
+# In[16]:
+
+
+from textblob import TextBlob
+
+# Function to calculate sentiment polarity
+def get_sentiment(tweet):
+    analysis = TextBlob(tweet)
+    return analysis.sentiment.polarity
+
+# Apply the sentiment analysis function to the tweet text
+tweets_df['sentiment'] = tweets_df['tweet'].apply(get_sentiment)
+
+# Display the updated tweets dataset with sentiment scores
+print("First few rows of the tweets dataset with sentiment scores:")
+display(tweets_df.head())
+
+
+# ### Data Integration
+# 
+# Now, we will integrate the sentiment scores with the stock price data. We will aggregate the sentiment scores by date and merge them with the stock price data.
+# 
+
+# In[18]:
+
+
+# Aggregate sentiment scores by date
+daily_sentiment = tweets_df.groupby('date')['sentiment'].mean().reset_index()
+
+# Merge the sentiment scores with the stock price data for each company
+for company in companies:
+    stock_data[company] = stock_data[company].merge(daily_sentiment, left_on='Date', right_on='date', how='left')
+    stock_data[company] = stock_data[company].drop(columns=['date'])
+
+    # Display the merged dataset
+    print(f"First few rows of the merged {company} dataset:")
+    display(stock_data[company].head())
+
+
+# ### Verify Data Structure
+# 
+# Let's check the type of `stock_data[company]` to ensure it's a DataFrame.
+# 
+
+# In[20]:
+
+
+# Re-load stock price data for a few companies
+companies = ['AAPL', 'AMZN', 'GOOG', 'MSFT', 'TSLA']
+stock_data = {}
+for company in companies:
+    company_csv_path = os.path.join(stockprice_dir, f'{company}.csv')
+    if os.path.exists(company_csv_path):
+        stock_data[company] = pd.read_csv(company_csv_path)
+        print(f"First few rows of the {company} dataset:")
+        display(stock_data[company].head())
+    else:
+        print(f"{company_csv_path} does not exist.")
+
+
+# In[21]:
+
+
+for company in companies:
+    print(f"Type of stock_data[{company}]: {type(stock_data[company])}")
+    display(stock_data[company].head())
+
+
+# ### Feature Engineering on Tweet Text
+# 
+# Next, we will perform feature engineering on the tweet text. We'll use the TextBlob library for sentiment analysis to extract sentiment scores from the tweets.
+# 
+
+# In[23]:
+
+
+from textblob import TextBlob
+
+# Function to calculate sentiment polarity
+def get_sentiment(tweet):
+    analysis = TextBlob(tweet)
+    return analysis.sentiment.polarity
+
+# Apply the sentiment analysis function to the tweet text
+tweets_df['sentiment'] = tweets_df['tweet'].apply(get_sentiment)
+
+# Display the updated tweets dataset with sentiment scores
+print("First few rows of the tweets dataset with sentiment scores:")
+display(tweets_df.head())
+
+
+# ### Integrate Sentiment Scores
+# 
+# We will aggregate the sentiment scores by date and merge them with the stock price data.
+# 
+
+# In[25]:
+
+
+# Aggregate sentiment scores by date
+daily_sentiment = tweets_df.groupby('date')['sentiment'].mean().reset_index()
+
+# Convert `date` column in `daily_sentiment` to datetime
+daily_sentiment['date'] = pd.to_datetime(daily_sentiment['date'])
+
+# Merge the sentiment scores with the stock price data for each company
+for company in companies:
+    # Ensure the Date column in stock data is of datetime type
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'])
+    
+    stock_data[company] = stock_data[company].merge(daily_sentiment, left_on='Date', right_on='date', how='left')
+    stock_data[company] = stock_data[company].drop(columns=['date'])
+
+    # Display the merged dataset
+    print(f"First few rows of the merged {company} dataset:")
+    display(stock_data[company].head())
+
+
+# ### Integrate Sentiment Scores using `pd.concat`
+# 
+# We will aggregate the sentiment scores by date and merge them with the stock price data using `pd.concat`.
+# 
+
+# In[27]:
+
+
+# Aggregate sentiment scores by date
+daily_sentiment = tweets_df.groupby('date')['sentiment'].mean().reset_index()
+
+# Convert `date` column in `daily_sentiment` to datetime
+daily_sentiment['date'] = pd.to_datetime(daily_sentiment['date'])
+
+# Set date as index in daily_sentiment
+daily_sentiment = daily_sentiment.set_index('date')
+
+# Merge the sentiment scores with the stock price data for each company
+for company in companies:
+    # Ensure the Date column in stock data is of datetime type
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'])
+    
+    # Set Date as index in stock data
+    stock_data[company] = stock_data[company].set_index('Date')
+    
+    # Concatenate the data
+    stock_data[company] = pd.concat([stock_data[company], daily_sentiment], axis=1)
+    
+    # Reset the index to Date
+    stock_data[company] = stock_data[company].reset_index()
+
+    # Display the merged dataset
+    print(f"First few rows of the merged {company} dataset:")
+    display(stock_data[company].head())
+
+
+# ### Prepare Data for Time Series Forecasting
+# 
+# We'll create lag features for the stock prices and sentiment scores, rename the 'index' column to 'Date', and split the data into training and testing sets.
+# 
+
+# In[29]:
+
+
+from sklearn.model_selection import train_test_split
+
+# Function to create lag features
+def create_lag_features(df, lags, target_col):
+    for lag in lags:
+        df[f'{target_col}_lag_{lag}'] = df[target_col].shift(lag)
+    return df
+
+# Define the lags and the target column
+lags = [1, 3, 7]
+target_col = 'Close'
+
+# Prepare the data for each company
+prepared_stock_data = {}
+for company in companies:
+    df = stock_data[company]
+    
+    # Ensure the Date column is of datetime type
+    df['Date'] = pd.to_datetime(df['Date'])
+    
+    # Create lag features for the Close price and sentiment
+    df = create_lag_features(df, lags, target_col)
+    df = create_lag_features(df, lags, 'sentiment')
+    
+    # Drop rows with NaN values created by the lag features
+    df = df.dropna()
+    
+    # Set Date as index
+    df = df.set_index('Date')
+    
+    # Split the data into training and testing sets
+    X = df.drop(columns=['Close'])
+    y = df['Close']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    
+    # Store the prepared data
+    prepared_stock_data[company] = (X_train, X_test, y_train, y_test)
+
+    print(f"Prepared data for {company}:")
+    print("X_train:")
+    display(X_train.head())
+    print("y_train:")
+    display(y_train.head())
+
+
+# 

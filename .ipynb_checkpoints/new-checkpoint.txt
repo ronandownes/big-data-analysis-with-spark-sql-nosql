@@ -1,0 +1,681 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# ## Exploratory Data Analysis
+# 
+# ### Tweets and Financial Price Data
+# The tweets and financial price data were obtained from the Twitter API and Yahoo Finance. These datasets were then stored and analyzed as per the project requirements.
+# 
+# ### Context
+# 
+# #### Data in "stocktweet.csv"
+# - **Data Collection Period:** January 2020 - December 2020
+# - **Number of Tweets:** 10,000
+# - **Fields:**
+#   - **ids:** The ID of the tweet (e.g., 100001)
+#   - **date:** The date of the tweet (e.g., 01/01/2020)
+#   - **ticker:** The ticker value for the company (e.g., AMZN)
+#   - **tweet:** The text of the tweet (e.g., $AMZN Dow futures up by 100 points already)
+# 
+# #### Data in "stockprice" Folder
+# - **Data Collection Period:** January 2020 - December 2020
+# - **Companies (38 Tickers):**
+#   - 'AAPL', 'ABNB', 'AMT', 'AMZN', 'BA', 'BABA', 'BAC', 'BKNG', 'BRK.A', 'BRK.B', 'CCL', 'CVX', 'DIS', 'FB', 'GOOG', 'GOOGL', 'HD', 'JNJ', 'JPM', 'KO', 'LOW', 'MA', 'MCD', 'MSFT', 'NFLX', 'NKE', 'NVDA', 'PFE', 'PG', 'PYPL', 'SBUX', 'TM', 'TSLA', 'TSM', 'UNH', 'UPS', 'V', 'WMT', 'XOM'
+# - **Fields in Each CSV File:**
+#   - **Date:** The date of the stock price (e.g., 01/01/2020)
+#   - **Open:** The opening value of the stock price that day (e.g., 123.33)
+#   - **High:** The highest value of the stock price that day (e.g., 125.45)
+#   - **Low:** The lowest value of the stock price that day (e.g., 121.54)
+#   - **Close:** The closing value of the stock price that day (e.g., 122.49)
+#   - **Adj Close:** The adjusted closing value of the stock price that day (e.g., 122.49)
+#   - **Volume:** The number of stocks traded that day (e.g., 100805600)
+# 
+
+# In[79]:
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+
+warnings.filterwarnings('ignore')
+
+# Load the tweet dataset
+tweets_df = pd.read_csv('stock-tweet-and-price/stocktweet/stocktweet.csv')
+
+# Count the number of tweets for each ticker
+ticker_counts = tweets_df['ticker'].value_counts()
+
+# Get the number of unique companies (tickers) and total entries
+num_companies = ticker_counts.nunique()
+total_entries = len(tweets_df)
+
+# Display the number of companies and total entries
+print(f"Number of unique companies: {num_companies}")
+print(f"Total entries: {total_entries}")
+
+# Create a countplot bar chart for the number of tweets per ticker
+plt.figure(figsize=(12, 6))
+ax = sns.countplot(data=tweets_df, x='ticker', order=ticker_counts.index[:10])  # Display top 15 tickers
+plt.title('Number of Tweets per Ticker (Top 10)')
+plt.xlabel('Ticker')
+plt.ylabel('Count of Tweets')
+plt.xticks(rotation=45)
+
+# Add values on the bars
+for p in ax.patches:
+    height = p.get_height()
+    ax.text(p.get_x() + p.get_width() / 2, height, f'{int(height)}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+
+# Save the plot as a PNG file
+plt.savefig('images/tweet_per_ticker.png')
+
+# Show the plot
+plt.show()
+
+
+# In[81]:
+
+
+# Count the number of tweets for each ticker and sort them in descending order
+ticker_counts = tweets_df['ticker'].value_counts()
+
+# Get the unique tickers ordered by frequency
+ordered_unique_tickers = ticker_counts.index.tolist()
+
+# Display the ordered unique tickers
+print("Unique tickers in the dataset, ordered by frequency:")
+print(ordered_unique_tickers)
+
+
+# In[83]:
+
+
+# Display the first few rows of the tweet dataset
+tweets_df.head()
+
+
+# In[85]:
+
+
+# Choose top 5 companies
+companies = ['TSLA', 'AAPL', 'BA', 'DIS', 'AMZN']
+stock_data = {}
+
+for company in companies:
+    stock_data[company] = pd.read_csv(f'stock-tweet-and-price/stockprice/{company}.csv')
+
+
+# Convert tweet dates to datetime and handle any invalid date formats
+tweets_df['date'] = pd.to_datetime(tweets_df['date'], format='%d/%m/%Y', errors='coerce')
+
+# Convert stock prices 'Date' columns to datetime and handle invalid formats
+for company in companies:
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'], errors='coerce')
+
+
+# In[108]:
+
+
+# Display the first 5 rows of tweets for each company
+for company in companies:
+    # Filter tweets related to the current company
+    company_tweets = tweets_df[tweets_df['ticker'] == company]
+    # Display the first 10 rows of the filtered tweets
+    print(f"First 5 tweets for {company}:")
+    display(company_tweets.head(5))
+
+
+# ## Sentiment Analysis
+# 
+# In this step, we perform sentiment analysis on the tweets using the `TextBlob` library. Each tweet is assigned a sentiment polarity score ranging from -1 (negative) to 1 (positive). We then aggregate these scores by date to understand the overall sentiment trends for the stock-related tweets. This daily sentiment score will later be aligned with the stock price data for further analysis.
+# 
+
+# In[111]:
+
+
+## Sentiment Analysis
+from textblob import TextBlob
+
+# Apply sentiment analysis
+tweets_df['sentiment'] = tweets_df['tweet'].apply(lambda tweet: TextBlob(tweet).sentiment.polarity)
+
+# Aggregate sentiment by date
+daily_sentiment = tweets_df.groupby('date')['sentiment'].mean().reset_index()
+
+# Display the first few rows of the aggregated sentiment data
+daily_sentiment.head()
+
+
+# In[112]:
+
+
+# Create a density plot to visualize the distribution of sentiment scores
+plt.figure(figsize=(12, 6))
+
+# Create a density plot (KDE plot)
+sns.kdeplot(data=tweets_df, x='sentiment', fill=True, color='blue')
+
+# Customize the plot
+plt.title('Distribution of Sentiment Scores')
+plt.xlabel('Sentiment Score')
+plt.ylabel('Density')
+plt.xlim(-1, 1)  # Set x-axis limits to range from -1 to 1
+
+# Save the plot as a PNG file
+plt.savefig('images/sentiment_distribution.png')
+
+# Show the plot
+plt.show()
+
+
+# In[115]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Create a box plot to visualize the distribution of sentiment scores
+plt.figure(figsize=(12, 6))
+sns.boxplot(data=tweets_df, x='sentiment', color='lightblue')
+
+# Customize the plot
+plt.title('Box Plot of Sentiment Scores')
+plt.xlabel('Sentiment Score')
+
+# Save the plot as a PNG file
+plt.savefig('images/sentiment_boxplot.png')
+
+# Show the plot
+plt.show()
+
+
+# In[117]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Create a histogram to visualize the distribution of sentiment scores
+plt.figure(figsize=(12, 6))
+sns.histplot(data=tweets_df, x='sentiment', bins=30, kde=False, color='blue')
+
+# Customize the plot
+plt.title('Histogram of Sentiment Scores')
+plt.xlabel('Sentiment Score')
+plt.ylabel('Frequency')
+
+# Save the plot as a PNG file
+plt.savefig('images/sentiment_histogram.png')
+
+# Show the plot
+plt.show()
+
+
+# In[119]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Create a violin plot to visualize the distribution and density of sentiment scores
+plt.figure(figsize=(12, 6))
+sns.violinplot(data=tweets_df, x='sentiment', color='lightblue')
+
+# Customize the plot
+plt.title('Violin Plot of Sentiment Scores')
+plt.xlabel('Sentiment Score')
+
+# Save the plot as a PNG file
+plt.savefig('images/sentiment_violinplot.png')
+
+# Show the plot
+plt.show()
+
+
+# In[123]:
+
+
+# Display the descriptive statistics
+tweets_df['sentiment'].describe()
+
+
+# In[135]:
+
+
+import pandas as pd
+
+# Ensure that 'Date' and 'date' columns are in datetime format
+tweets_df['date'] = pd.to_datetime(tweets_df['date'], format='%d/%m/%Y', errors='coerce')
+daily_sentiment['date'] = pd.to_datetime(daily_sentiment['date'], errors='coerce')
+
+# Convert stock prices 'Date' columns to datetime and handle invalid formats
+for company in companies:
+    stock_data[company]['Date'] = pd.to_datetime(stock_data[company]['Date'], errors='coerce')
+
+# Merge sentiment data with stock price data for each selected company
+merged_data = {}
+
+for company in companies:
+    # Merge the stock data with the daily sentiment data on the date
+    merged_data[company] = pd.merge(
+        stock_data[company], daily_sentiment,
+        left_on='Date', right_on='date',
+        how='left'
+    )
+    # Drop the 'date' column from the merged dataset to avoid redundancy
+    merged_data[company].drop(columns=['date'], inplace=True)
+
+    # Display the first few rows of the merged data
+    print(f"First few rows of the merged data for {company}:")
+    display(merged_data[company].head())
+
+
+# In[127]:
+
+
+# Merge sentiment data with stock price data for each selected company
+merged_data = {}
+
+for company in companies:
+    # Merge the stock data with the daily sentiment data on the date
+    merged_data[company] = pd.merge(stock_data[company], daily_sentiment, left_on='Date', right_on='date', how='left')
+
+# Display the first few rows of the merged data for one company (e.g., AAPL)
+merged_data['TSLA'].head()
+
+
+# 
+
+# In[9]:
+
+
+# Merge sentiment data with stock price data for each selected company
+for company in companies:
+    df = stock_data[company]
+    df = df.merge(daily_sentiment, left_on='Date', right_on='date', how='left')
+    df.drop(columns=['date'], inplace=True)
+    stock_data[company] = df
+
+# Display the first few rows of the merged data for one company (e.g., AAPL)
+stock_data['AAPL'].head()
+
+
+# ### Organizing Processed Data
+# 
+# This step involves creating a directory named `processed_data` to store the merged data for the selected companies. The new directory structure enhances data organization, making it easier to access and manage the processed files in subsequent stages of analysis. The code moves the files from their original location to this directory and lists the contents to verify the move.
+# 
+
+# In[11]:
+
+
+import os
+
+# Create a directory for storing the processed data CSVs if it doesn't already exist
+output_directory = "processed_data"
+os.makedirs(output_directory, exist_ok=True)
+
+# Save merged data to CSV files
+for company in companies:
+    file_name = f"{company}_merged_data.csv"
+    stock_data[company].to_csv(file_name, index=False)  # Save merged data to a CSV file
+
+    # Move the newly created file to the processed_data directory
+    new_path = os.path.join(output_directory, file_name)
+    
+    # Check if the file exists in the destination and remove it if it does
+    if os.path.exists(new_path):
+        os.remove(new_path)
+    
+    os.rename(file_name, new_path)
+
+# List the files in the new directory to confirm they were moved
+print(os.listdir(output_directory))
+
+
+
+# ## Time Series Forecast
+# 
+# The project involves making a time series forecast of the CLOSE price for at least 5 companies using both the tweet data and financial price data. Forecasts are made for 1 day, 3 days, and 7 days into the future and displayed on a dynamic dashboard.
+# 
+# ### Project Requirements and Elements
+# 
+# - **Distributed Data Processing:** 
+#   - The project incorporates a distributed data processing environment like Spark for part of the analysis.
+# 
+# - **Data Storage in SQL/NoSQL Databases:** 
+#   - Source datasets are stored in SQL/NoSQL databases prior to processing using MapReduce or Spark (HBase, HIVE, Spark SQL, Cassandra, MongoDB).
+#   - Data is loaded into the NoSQL database using an appropriate tool (Hadoop or Spark).
+# 
+# - **Post Map-Reduce Processing:** 
+#   - Post MapReduce, the datasets are stored in an appropriate NoSQL database.
+#   - The processed data is then extracted from the NoSQL database into another format (e.g., CSV) for further analysis in Python.
+# 
+# - **Comparative Analysis of Databases:** 
+#   - A test strategy is devised to perform a comparative analysis of the capabilities of two databases (e.g., MySQL, MongoDB, Cassandra, HBase, CouchDB).
+#   - Metrics are recorded, and a quantitative analysis is performed to compare the performance of the chosen database systems.
+# 
+# - **Sentiment Extraction Techniques:** 
+#   - Evidence and justification of the sentiment extraction techniques used in the analysis.
+# 
+# - **Time-Series Forecasting Methods:** 
+#   - At least two methods of time-series forecasting are explored, including:
+#     - **1 Neural Network Model:** (e.g., LSTM)
+#     - **1 Autoregressive Model:** (e.g., ARIMA, SARIMA)
+#   - Since this is a short time series, considerations are made on how to handle the forecasting effectively.
+# 
+# - **Final Analysis and Justification:** 
+#   - Justifications for the choices made in the final analysis are provided, along with the forecasts for 1 day, 3 days, and 7 days going forward.
+# 
+# - **Dynamic and Interactive Dashboard:** 
+#   - The dashboard must be dynamic and interactive.
+#   - The design rationale must express Tuft's principles.
+# 
+
+# ### Creating Lag Features for Stock Price and Sentiment
+# This code creates lag features for the stock prices and sentiment scores for 1, 3, and 7 days. These features capture the temporal dependencies in the data, which are crucial for time-series forecasting. After creating these features, rows with missing values are removed.
+# 
+
+# In[13]:
+
+
+# Function to create lag features for the target column
+def create_lag_features(df, lags, target_col):
+    """
+    Creates lagged features for a specified column in the dataframe.
+
+    Parameters:
+    df (pd.DataFrame): The dataframe containing the data.
+    lags (list): A list of integers indicating the number of lags to create.
+    target_col (str): The column for which lag features are to be created.
+
+    Returns:
+    pd.DataFrame: The dataframe with new lagged features.
+    """
+    for lag in lags:
+        # Creating lag features for the specified column
+        df[f'{target_col}_lag_{lag}'] = df[target_col].shift(lag)
+    return df
+
+# Define the lag intervals to create
+lags = [1, 3, 7]
+
+# Loop through each company to create lag features for 'Close' and 'sentiment' columns
+for company in companies:
+    df = stock_data[company]
+    # Creating lag features for the 'Close' price
+    df = create_lag_features(df, lags, 'Close')
+    # Creating lag features for the 'sentiment' scores
+    df = create_lag_features(df, lags, 'sentiment')
+    
+    # Drop rows with NaN values introduced by the lagging process
+    df.dropna(inplace=True)
+    
+    # Store the updated dataframe back to the stock_data dictionary
+    stock_data[company] = df
+
+
+# ### Visualization of Stock Prices
+# In this step, we plot the historical stock prices for each selected company (Apple, Amazon, Google, Microsoft, and Tesla). Each stock price plot is saved as a PNG file in the `images` directory. This visualization provides a clear view of the stock price trends over time and serves as a reference for further analysis.
+# 
+
+# In[15]:
+
+
+import matplotlib.pyplot as plt
+import os
+
+# Ensure the images directory exists
+images_dir = 'images'
+os.makedirs(images_dir, exist_ok=True)
+
+# Define the companies and their colors
+companies = ['AAPL', 'AMZN', 'GOOG', 'MSFT', 'TSLA']
+company_colors = {
+    'AAPL': 'blue',
+    'AMZN': 'red',
+    'GOOG': 'green',
+    'MSFT': 'black',
+    'TSLA': 'darkgrey'
+}
+
+# Plot stock price for each company with specified colors and save the image
+for company in companies:
+    plt.figure(figsize=(14, 7))
+    plt.plot(stock_data[company]['Date'], stock_data[company]['Close'], label=f'{company} Close Price', color=company_colors[company])
+    plt.title(f'{company} Stock Price over Time')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    image_path = os.path.join(images_dir, f'{company}_stock_price.png')
+    plt.savefig(image_path)
+    plt.show()
+
+
+
+# ## Storage and Processing of Big Data Using Advanced Data Analytics Techniques
+# 
+# ### Big Data
+# 
+# - **Data Storage Preparation and Processing:** 
+#   - Data storage is prepared and processed in a MapReduce/Spark environment to handle the large-scale data efficiently.
+# 
+# - **Comparative Analysis for Databases:**
+#   - A comparative analysis of two databases, SQL and NoSQL, is performed using YCSB (Yahoo Cloud Serving Benchmark).
+#   - The analysis includes metrics to evaluate the performance and capabilities of each database system.
+# 
+# - **Rationale for Data Processing and Storage Choices:** 
+#   - The rationale behind the choice of data processing, storage methods, and programming languages is provided. This includes the justification for using Spark for distributed processing and the selection of SQL/NoSQL databases.
+# 
+# - **Architecture Design for Big Data Processing:** 
+#   - The architecture for processing big data is designed to integrate necessary technologies, including HADOOP/SPARK, NoSQL/SQL databases, and programming tools.
+#   - A diagram illustrating the design is presented in the report, accompanied by a detailed discussion.
+# 
+# - **MapReduce-Style Processing:** 
+#   - In this context, MapReduce-style processing includes platforms such as Apache Spark, which facilitates efficient distributed data processing.
+# 
+# ### Advanced Data Analytics
+# 
+# - **Rationale, Evaluation, and Justification:**
+#   - A detailed rationale and evaluation of the choices made during Exploratory Data Analysis (EDA), data wrangling, and the implementation of machine learning models and algorithms.
+# 
+# - **Hyperparameter Tuning Techniques:** 
+#   - Evaluatio
+# 
+
+# ## Data Storage in SQL and NoSQL Databases
+# In this step, we store the processed data into SQL (MySQL) and NoSQL (MongoDB) databases. The stock price data is stored in a MySQL database on our SQL VM, while the tweet data and sentiment scores are stored in a MongoDB database on our NoSQL VM. This approach allows us to efficiently query and manage both structured and unstructured data for further analysis and processing.
+# 
+
+# In[17]:
+
+
+from sqlalchemy import create_engine
+
+try:
+    # Use the IP address of your VM
+    mysql_engine = create_engine('mysql+pymysql://ronan:Zebra103!@192.168.0.190/stock_data_db')
+    connection = mysql_engine.connect()
+    
+    # Export each company's DataFrame to a table in the MySQL database
+    for company in companies:
+        table_name = f"{company.lower()}_stock_data"
+        stock_data[company].to_sql(table_name, mysql_engine, if_exists='replace', index=False)
+        print(f"Data for {company} exported to MySQL table '{table_name}' successfully.")
+    
+    # Close the connection
+    connection.close()
+except Exception as e:
+    print(f"MySQL export error: {e}")
+
+
+# ## Setting Up MongoDB and Exporting Data
+# 
+# In this section, we set up MongoDB on the NoSQL virtual machine and configure it for remote access. We create a new user for secure database access and use the `pymongo` library to export processed tweet data to MongoDB.
+# 
+# ### Step 1: MongoDB Installation and Configuration on NoSQL VM
+# - Installed MongoDB using `apt-get`.
+# - Modified `/etc/mongodb.conf` to allow remote access.
+# - Created a user `ronan` with password `Zebra103!` for secure database access.
+# 
+# ### Step 2: Connecting to MongoDB Using Python
+# We use the `pymongo` library to connect to the MongoDB server at IP `192.168.0.219` and export the tweet data. The `MongoClient` is instantiated with the necessary credentials to ensure secure access.
+# 
+# ### Step 3: Data Export to MongoDB
+# The tweet data is converted into a dictionary format and inserted into the MongoDB collection using the `insert_many()` method.
+# 
+
+# In[19]:
+
+
+import pymongo
+
+# Use the updated IP address of your VM
+mongo_client = pymongo.MongoClient('mongodb://ronan:Zebra103!@192.168.0.190:27017/')
+mongo_db = mongo_client['stock_sentiment_db']  # Database name
+tweets_collection = mongo_db['tweets']  # Collection name
+
+# Convert tweet DataFrame to dictionary records for MongoDB insertion
+tweets_dict = tweets_df.to_dict('records')
+
+# Insert the tweet data into the MongoDB collection
+try:
+    tweets_collection.insert_many(tweets_dict)
+    print("Tweet data exported to MongoDB successfully.")
+except Exception as e:
+    print(f"MongoDB export error: {e}")
+
+
+# 
+
+# 
+
+# In[30]:
+
+
+from pyspark.sql import SparkSession
+
+# Initialize SparkSession
+spark = SparkSession.builder \
+    .appName("MySparkApp") \
+    .config("spark.master", "spark://192.168.0.190:7077") \
+    .config("spark.hadoop.fs.defaultFS", "hdfs://192.168.0.190:9000") \
+    .getOrCreate()
+
+# # Example usage
+# df = spark.read.csv("hdfs://192.168.0.190:9000/path/to/data.csv", header=True, inferSchema=True)  # Adjust the path as needed
+# df.show()
+
+
+# In[23]:
+
+
+# from pyspark.sql import SparkSession
+
+# # Initialize a Spark session
+# spark = SparkSession.builder \
+#     .appName("TestSparkHDFS") \
+#     .config("spark.master", "spark://192.168.0.190:7077") \
+#     .config("spark.hadoop.fs.defaultFS", "hdfs://192.168.0.190:9000") \
+#     .getOrCreate()
+
+# # Test reading a CSV file from HDFS
+# try:
+#     # Replace with the correct path to your CSV file in HDFS
+#     df = spark.read.csv("hdfs://192.168.0.190:9000/path/to/data.csv", header=True, inferSchema=True)
+    
+#     # Show the first few rows to confirm successful read
+#     df.show()
+    
+#     print("Successfully read the CSV file from HDFS using Spark.")
+# except Exception as e:
+#     print(f"Error reading CSV from HDFS: {e}")
+
+# # Stop the Spark session
+# spark.stop()
+
+
+# In[28]:
+
+
+from statsmodels.tsa.arima.model import ARIMA
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+# Ensure the images directory exists
+images_dir = 'images'
+os.makedirs(images_dir, exist_ok=True)
+
+# Define the companies and their colors
+companies = ['AAPL', 'AMZN', 'GOOG', 'MSFT', 'TSLA']
+company_colors = {
+    'AAPL': 'blue',
+    'AMZN': 'red',
+    'GOOG': 'green',
+    'MSFT': 'black',
+    'TSLA': 'darkgrey'
+}
+
+# Loop through each company and generate forecasts
+for company in companies:
+    df = stock_data[company]
+    
+    # Convert the 'Date' column to datetime and set it as the index
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    
+    # Use the 'Close' price for forecasting
+    y = df['Close']
+
+    # Train an ARIMA model (example with (p=5, d=1, q=0), adjust as needed)
+    model = ARIMA(y, order=(5, 1, 0))
+    model_fit = model.fit()
+
+    # Forecast the next 1, 3, and 7 days
+    forecast_1day = model_fit.forecast(steps=1)
+    forecast_3days = model_fit.forecast(steps=3)
+    forecast_7days = model_fit.forecast(steps=7)
+
+    # Prepare actual and predicted data for plotting (example with the last 100 points)
+    y_test = y[-100:]
+    y_pred_1day = np.append(y_test.values[:-1], forecast_1day)
+    y_pred_3days = np.append(y_test.values[:-3], forecast_3days)
+    y_pred_7days = np.append(y_test.values[:-7], forecast_7days)
+
+    # Plot and save 1-day forecast
+    plt.figure(figsize=(14, 7))
+    plt.plot(y_test.index, y_test, label='Actual Prices', color=company_colors[company])
+    plt.plot(y_test.index, y_pred_1day, label='1-Day Prediction', color='red')
+    plt.title(f'{company} Stock Price Prediction - 1 Day')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    image_path = os.path.join(images_dir, f'{company}_forecast_1day.png')
+    plt.savefig(image_path)
+    plt.show()
+
+    # Plot and save 3-day forecast
+    plt.figure(figsize=(14, 7))
+    plt.plot(y_test.index, y_test, label='Actual Prices', color=company_colors[company])
+    plt.plot(y_test.index, y_pred_3days, label='3-Day Prediction', color='orange')
+    plt.title(f'{company} Stock Price Prediction - 3 Days')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    image_path = os.path.join(images_dir, f'{company}_forecast_3days.png')
+    plt.savefig(image_path)
+    plt.show()
+
+    # Plot and save 7-day forecast
+    plt.figure(figsize=(14, 7))
+    plt.plot(y_test.index, y_test, label='Actual Prices', color=company_colors[company])
+    plt.plot(y_test.index, y_pred_7days, label='7-Day Prediction', color='green')
+    plt.title(f'{company} Stock Price Prediction - 7 Days')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    image_path = os.path.join(images_dir, f'{company}_forecast_7days.png')
+    plt.savefig(image_path)
+    plt.show()
